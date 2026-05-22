@@ -2,10 +2,12 @@ import { Request, Response } from "express";
 import { Pembicara } from "../types/pembicara";
 import { prisma } from "../lib/db";
 
+let pembicara: Pembicara[] = [];
+
 // Get all pembicara
 export const getPembicara = async (req: Request, res: Response) => {
   try {
-    const allPembicara = await prisma.pembicara.findMany({
+    const allPembicara = await prisma.Pembicaraa.findMany({
       orderBy: { createdAt: "desc" },
     });
     res.json(allPembicara);
@@ -18,12 +20,12 @@ export const getPembicara = async (req: Request, res: Response) => {
 // Create new pembicara
 export const createPembicara = async (req: Request, res: Response) => {
   try {
-    const { nama, role } = req.body;
-    if (!nama || !role) {
+    const { name, role } = req.body;
+    if (!name || !role) {
       return res.status(400).json({ error: "Nama dan role wajib diisi" });
     }
-    const created = await prisma.pembicara.create({
-      data: { nama, role },
+    const created = await prisma.Pembicaraa.create({
+      data: { name, role },
     });
     res.status(201).json(created);
   } catch (error) {
@@ -36,10 +38,10 @@ export const createPembicara = async (req: Request, res: Response) => {
 export const updatePembicara = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { nama, role } = req.body;
-    const updated = await prisma.pembicara.update({
+    const { name, role } = req.body;
+    const updated = await prisma.Pembicaraa.update({
       where: { id },
-      data: { nama, role },
+      data: { name, role },
     });
     res.json(updated);
   } catch (error: any) {
@@ -55,7 +57,7 @@ export const updatePembicara = async (req: Request, res: Response) => {
 export const deletePembicara = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    await prisma.pembicara.delete({ where: { id } });
+    await prisma.Pembicaraa.delete({ where: { id } });
     res.json({ message: "Pembicara berhasil dihapus" });
   } catch (error: any) {
     if (error.code === "P2025") {

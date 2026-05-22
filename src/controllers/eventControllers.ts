@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { Event } from "../types/event";
 import { prisma } from "../lib/db";
 
+let events: Event[] = [];
+
 // 1. Get all events
 export const getEvents = async (req: Request, res: Response) => {
   try {
