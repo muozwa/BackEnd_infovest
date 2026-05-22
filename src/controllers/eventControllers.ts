@@ -1,44 +1,112 @@
-import {Request, Response} from "express";
-import {Event} from "../types/event";
+import { Request, Response } from "express";
+import { Event } from "../types/event";
+import { prisma } from "../lib/db";
 
-let events: Event[] = [];
-
-//1. menampilkan data event
-export const getEvents = (req: Request, res: Response) => {
-    res.json(events);
+// 1. Get all events
+export const getEvents = async (req: Request, res: Response) => {
+  try {
+    const allEvents = await prisma.event.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        category: true,
+        pembicara: true,
+      },
+    });
+    res.json(allEvents);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
-//2. menyimpan data event
-export const createEvent = (req: Request, res: Response) => {
-    const {name, category, tanggal, description} = req.body;
-
-    if(!name || !category || !tanggal || !description){ {
-        return res.status(500).json({message: "Nama, category, tanggal, dan description harus diisi"});
+// 2. Create new event
+export const createEvent = async (req: Request, res: Response) => {
+  try {
+    const { name, categoryId, pembicaraId, tanggal, description } = req.body;
+    if (!name || !categoryId || !pembicaraId || !tanggal) {
+      return res.status(400).json({ error: "Name, categoryId, pembicaraId, and tanggal are required" });
     }
-
-    const  newEvent : Event ={
-        id: events.length + 1,
-        name: name,
-        category: category,
+    const newEvent = await prisma.event.create({
+      data: {
+        name,
         tanggal: new Date(tanggal),
-        description: description
-    }
+        description: description || "",
+        categoryId: Number(categoryId),
+        pembicaraId: Number(pembicaraId),
+      },
+      include: {
+        category: true,
+        pembicara: true,
+      },
+    });
+    res.status(201).json(newEvent);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
-    events.push(newEvent);
-    res.status(201).json({message: "Event berhasil ditambahkan", event: newEvent});
-};};
-//3. mengambil data event berdasarkan id
-export const getEventById = (req: Request, res: Response) => {
+// 3. Get event by id
+export const getEventById = async (req: Request, res: Response) => {
+  try {
     const id = Number(req.params.id);
-    const event = events.find((e) => e.id === id);
-    
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        pembicara: true,
+      },
+    });
     if (!event) {
-        return res.status(404).json({message: "Event tidak ditemukan"});
+      return res.status(404).json({ error: "Event not found" });
     }
     res.json(event);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
-//4. mengupdate data event berdasarkan id
-export const updateEvent = (req: Request, res: Response) => {};
-//5 menghapus data event berdasarkan id
-export const deleteEvent = (req: Request, res: Response) => {};
+// 4. Update event
+export const updateEvent = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, categoryId, pembicaraId, tanggal, description } = req.body;
+    const updatedEvent = await prisma.event.update({
+      where: { id },
+      data: {
+        name,
+        categoryId: categoryId ? Number(categoryId) : undefined,
+        pembicaraId: pembicaraId ? Number(pembicaraId) : undefined,
+        tanggal: tanggal ? new Date(tanggal) : undefined,
+        description,
+      },
+      include: {
+        category: true,
+        pembicara: true,
+      },
+    });
+    res.json(updatedEvent);
+  } catch (error: any) {
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// 5. Delete event
+export const deleteEvent = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.event.delete({ where: { id } });
+    res.json({ message: "Event deleted successfully" });
+  } catch (error: any) {
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
